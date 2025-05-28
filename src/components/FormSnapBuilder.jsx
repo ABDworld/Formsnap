@@ -79,7 +79,7 @@ export default function FormSnapBuilder() {
     e.preventDefault();
 
     try {
-      const { error } = await supabase.from("forms").insert([
+      const { error } = await supabase.from("responses").insert([
         {
           responses: responses,
           submitted_at: new Date().toISOString()
