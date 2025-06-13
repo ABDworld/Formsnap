@@ -1,3 +1,5 @@
+console.log("✅ App.jsx is being loaded");
+
 import React from "react";
 import PaymentButton from "./components/PaymentButton";
 
