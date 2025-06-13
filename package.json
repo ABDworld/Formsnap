@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:webhook": "supabase functions deploy stripe-webhook --use-api"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.4",
@@ -14,6 +15,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
+    "dotenv-cli": "^8.0.0",
+    "supabase": "^2.24.3",
     "vite": "^4.0.0"
   }
 }
