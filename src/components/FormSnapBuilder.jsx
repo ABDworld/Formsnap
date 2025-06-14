@@ -1,8 +1,5 @@
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
-import PaymentButton from "./PaymentButton";
-
-console.log("✅ FormSnapBuilder is loaded");
 
 export default function FormSnapBuilder() {
   const [formFields, setFormFields] = useState([
@@ -12,11 +9,7 @@ export default function FormSnapBuilder() {
       id: 3,
       type: "multipleChoice",
       label: "What are your primary goals for coaching?",
-      options: [
-        "Career advancement",
-        "Improving relationships",
-        "Work‑life balance"
-      ]
+      options: ["Career advancement", "Improving relationships", "Work‑life balance"]
     }
   ]);
 
@@ -72,78 +65,72 @@ export default function FormSnapBuilder() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    try {
-      const { error } = await supabase.from("responses").insert([
-        {
-          responses: responses,
-          submitted_at: new Date().toISOString()
-        }
-      ]);
+    // 1️⃣ Enregistrement dans Supabase
+    const { error } = await supabase.from("responses").insert([
+      {
+        responses: responses,
+        submitted_at: new Date().toISOString()
+      }
+    ]);
 
-      if (error) {
-        console.error("Supabase insert error:", error.message);
-        alert("❌ Could not save your responses. Please try again.");
+    if (error) {
+      console.error("❌ Supabase insert error:", error.message);
+      alert("Could not save your responses.");
+      return;
+    }
+
+    console.log("✅ Responses saved. Creating Stripe Checkout session…");
+
+    // 2️⃣ Appel de la Supabase Edge Function pour Stripe
+    try {
+      const res = await fetch("/functions/v1/create-checkout-session", {
+        method: "POST"
+      });
+
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
       } else {
-        console.log("✅ Responses saved in Supabase");
-        alert("✅ Form submitted successfully! Redirecting to payment…");
-        window.location.href = "https://buy.stripe.com/test_14A9AV0xu4dagEu4hJ83C02";
+        alert("Stripe checkout URL not received.");
+        console.error("Response:", data);
       }
     } catch (err) {
-      console.error("Unexpected error:", err);
-      alert("❌ An unexpected error occurred.");
+      console.error("❌ Error calling checkout session:", err);
+      alert("Something went wrong with Stripe Checkout.");
     }
-  };
-
-  const addField = (type) => {
-    const newField = { id: Date.now(), type, label: `New ${type} field` };
-    if (type === "multipleChoice") {
-      newField.options = ["Option 1", "Option 2"];
-    }
-    setFormFields([...formFields, newField]);
   };
 
   return (
     <div className="max-w-xl mx-auto p-6 space-y-4">
-      <h1 className="text-2xl font-bold">FormSnap</h1>
+      <h1 className="text-2xl font-bold">FormSnap Builder</h1>
 
-      {/* 🔵 Stripe Payment Button */}
-      <PaymentButton />
-
-      {/* Buttons to add new fields */}
+      {/* Buttons pour ajouter de nouveaux champs */}
       <div className="space-x-2">
-        <button
-          onClick={() => addField("shortAnswer")}
-          className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
-        >
-          + Short Answer
-        </button>
-        <button
-          onClick={() => addField("email")}
-          className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
-        >
-          + Email
-        </button>
-        <button
-          onClick={() => addField("multipleChoice")}
-          className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
-        >
-          + Multiple Choice
-        </button>
+        <button onClick={() => addField("shortAnswer")} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">+ Short Answer</button>
+        <button onClick={() => addField("email")} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">+ Email</button>
+        <button onClick={() => addField("multipleChoice")} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">+ Multiple Choice</button>
       </div>
 
-      {/* Actual form */}
+      {/* Formulaire */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {formFields.map((field) => (
           <div key={field.id}>{renderField(field)}</div>
         ))}
 
-        <button
-          type="submit"
-          className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-        >
-          Submit
+        <button type="submit" className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+          Submit & Pay
         </button>
       </form>
     </div>
   );
+
+  // 👇 ajoute dynamiquement des champs
+  function addField(type) {
+    const newField = { id: Date.now(), type, label: `New ${type} field` };
+    if (type === "multipleChoice") {
+      newField.options = ["Option 1", "Option 2"];
+    }
+    setFormFields([...formFields, newField]);
+  }
 }
