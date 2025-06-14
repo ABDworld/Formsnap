@@ -2,6 +2,8 @@ import { useState } from "react";
 import { supabase } from "../supabaseClient";
 import PaymentButton from "./PaymentButton";
 
+console.log("✅ FormSnapBuilder is loaded");
+
 export default function FormSnapBuilder() {
   const [formFields, setFormFields] = useState([
     { id: 1, type: "shortAnswer", label: "Name" },
@@ -10,9 +12,14 @@ export default function FormSnapBuilder() {
       id: 3,
       type: "multipleChoice",
       label: "What are your primary goals for coaching?",
-      options: ["Career advancement", "Improving relationships", "Work‑life balance"]
+      options: [
+        "Career advancement",
+        "Improving relationships",
+        "Work‑life balance"
+      ]
     }
   ]);
+
   const [responses, setResponses] = useState({});
 
   const handleChange = (id, value) => {
@@ -79,7 +86,6 @@ export default function FormSnapBuilder() {
       } else {
         console.log("✅ Responses saved in Supabase");
         alert("✅ Form submitted successfully! Redirecting to payment…");
-        // Simuler Stripe redirection (à remplacer par vrai lien ou Webhook)
         window.location.href = "https://buy.stripe.com/test_14A9AV0xu4dagEu4hJ83C02";
       }
     } catch (err) {
@@ -98,29 +104,39 @@ export default function FormSnapBuilder() {
 
   return (
     <div className="max-w-xl mx-auto p-6 space-y-4">
-      <h1 className="text-2xl font-bold">FormSnap Builder</h1>
+      <h1 className="text-2xl font-bold">FormSnap</h1>
 
-      {/* 🔵 Bouton Stripe */}
+      {/* 🔵 Stripe Payment Button */}
       <PaymentButton />
 
-      {/* Ajout de champs dynamiques */}
+      {/* Buttons to add new fields */}
       <div className="space-x-2">
-        <button onClick={() => addField("shortAnswer")} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">
+        <button
+          onClick={() => addField("shortAnswer")}
+          className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
+        >
           + Short Answer
         </button>
-        <button onClick={() => addField("email")} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">
+        <button
+          onClick={() => addField("email")}
+          className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
+        >
           + Email
         </button>
-        <button onClick={() => addField("multipleChoice")} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">
+        <button
+          onClick={() => addField("multipleChoice")}
+          className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
+        >
           + Multiple Choice
         </button>
       </div>
 
-      {/* Formulaire */}
+      {/* Actual form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {formFields.map((field) => (
           <div key={field.id}>{renderField(field)}</div>
         ))}
+
         <button
           type="submit"
           className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
