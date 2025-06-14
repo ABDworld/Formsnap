@@ -1,6 +1,8 @@
 import React from 'react';
 
 const PaymentButton = () => {
+  console.log("🟣 PaymentButton is rendered");
+
   const handleClick = async () => {
     try {
       const res = await fetch("/functions/v1/create-checkout-session", {
