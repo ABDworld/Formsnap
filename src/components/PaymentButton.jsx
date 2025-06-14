@@ -23,7 +23,21 @@ const PaymentButton = () => {
   };
 
   return (
-    <button onClick={handleClick} style={{ marginTop: "20px" }}>
+    <button
+      onClick={handleClick}
+      style={{
+        marginTop: "20px",
+        backgroundColor: "#635bff",
+        color: "#ffffff",
+        padding: "12px 24px",
+        fontSize: "16px",
+        fontWeight: "bold",
+        borderRadius: "8px",
+        border: "none",
+        cursor: "pointer",
+        display: "inline-block"
+      }}
+    >
       Pay with Stripe
     </button>
   );
