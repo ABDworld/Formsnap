@@ -62,101 +62,74 @@ export default function FormSnapBuilder() {
     }
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // 🔎 Trouver le champ email
-  const emailField = formFields.find((f) => f.type === "email");
-  const email = emailField ? responses[emailField.id] : null;
+    const emailField = formFields.find((field) => field.type === "email");
+    const email = emailField ? responses[emailField.id] : null;
 
-  // ✅ Exclure l'email des réponses
-  const filteredResponses = { ...responses };
-  if (emailField) {
-    delete filteredResponses[emailField.id];
-  }
-
-  // 📝 Enregistrement dans Supabase
-  const { error } = await supabase.from("responses").insert([
-    {
-      email,
-      responses: filteredResponses,
-      submitted_at: new Date().toISOString()
-    }
-  ]);
-
-  if (error) {
-    console.error("❌ Supabase insert error:", error.message);
-    alert("Could not save your responses.");
-    return;
-  }
-
-  console.log("✅ Responses saved. Creating Stripe Checkout session…");
-
-  // 🚀 Appel de la Supabase Edge Function en prod
-  try {
-   try {
-  const res = await fetch("https://wcfielvrofhdaxgudprn.functions.supabase.co/create-checkout-session", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ email })
-  });
-
-  // 👇 Ajoute ces logs ici pour déboguer
-  console.log("⚠️ Stripe Function status code:", res.status);
-  const raw = await res.text();
-  console.log("⚠️ Stripe Function raw response:", raw);
-
-  // On essaye ensuite de parser quand même
-  let data;
-  try {
-    data = JSON.parse(raw);
-  } catch (e) {
-    console.error("❌ JSON parsing failed:", e);
-    alert("Stripe response is not valid JSON.");
-    return;
-  }
-
-  if (data.url) {
-    window.location.href = data.url;
-  } else {
-    alert("Stripe checkout URL not received.");
-    console.error("Response:", data);
-  }
-} catch (err) {
-  console.error("❌ Error calling checkout session:", err);
-  alert("Something went wrong with Stripe Checkout.");
-}
+    // 1️⃣ Enregistrement dans Supabase
+    const { error } = await supabase.from("responses").insert([
+      {
+        responses: responses,
+        submitted_at: new Date().toISOString(),
+        email: email
       }
-    );
+    ]);
 
-    const data = await res.json();
-
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert("Stripe checkout URL not received.");
-      console.error("Response:", data);
+    if (error) {
+      console.error("❌ Supabase insert error:", error.message);
+      alert("Could not save your responses.");
+      return;
     }
-  } catch (err) {
-    console.error("❌ Error calling checkout session:", err);
-    alert("Something went wrong with Stripe Checkout.");
-  }
-};
+
+    console.log("✅ Responses saved. Creating Stripe Checkout session…");
+
+    // 2️⃣ Appel de la Supabase Edge Function Stripe
+    try {
+      const res = await fetch("https://wcfielvrofhdaxgudprn.functions.supabase.co/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email })
+      });
+
+      console.log("⚠️ Stripe Function status code:", res.status);
+      const raw = await res.text();
+      console.log("⚠️ Stripe Function raw response:", raw);
+
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch (e) {
+        console.error("❌ JSON parsing failed:", e);
+        alert("Stripe response is not valid JSON.");
+        return;
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert("Stripe checkout URL not received.");
+        console.error("Response:", data);
+      }
+    } catch (err) {
+      console.error("❌ Error calling checkout session:", err);
+      alert("Something went wrong with Stripe Checkout.");
+    }
+  };
 
   return (
     <div className="max-w-xl mx-auto p-6 space-y-4">
       <h1 className="text-2xl font-bold">FormSnap Builder</h1>
 
-      {/* Buttons pour ajouter de nouveaux champs */}
       <div className="space-x-2">
         <button onClick={() => addField("shortAnswer")} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">+ Short Answer</button>
         <button onClick={() => addField("email")} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">+ Email</button>
         <button onClick={() => addField("multipleChoice")} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">+ Multiple Choice</button>
       </div>
 
-      {/* Formulaire */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {formFields.map((field) => (
           <div key={field.id}>{renderField(field)}</div>
@@ -169,7 +142,6 @@ export default function FormSnapBuilder() {
     </div>
   );
 
-  // 👇 ajoute dynamiquement des champs
   function addField(type) {
     const newField = { id: Date.now(), type, label: `New ${type} field` };
     if (type === "multipleChoice") {
