@@ -1,34 +1,72 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Stripe from "npm:stripe";
+import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@12.1.0?target=deno";
 
-const stripe = Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
-  apiVersion: "2023-10-16",
+const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
+  apiVersion: "2022-11-15",
 });
 
 serve(async (req) => {
-  const body = await req.text();
-  const sig = req.headers.get("stripe-signature")!;
-  const endpointSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
+  // CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
+  }
 
-  let event;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
+      status: 405,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig, endpointSecret);
+    const { email } = await req.json();
+
+    if (!email || typeof email !== "string") {
+      return new Response(JSON.stringify({ error: "Missing email" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      customer_email: email,
+      line_items: [
+        {
+          price_data: {
+            currency: "eur",
+            product_data: { name: "FormSnap PRO" },
+            unit_amount: 1000,
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: "https://formsnap-pearl.vercel.app/success",
+      cancel_url: "https://formsnap-pearl.vercel.app/cancel",
+    });
+
+    return new Response(JSON.stringify({ url: session.url }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
   } catch (err) {
-    console.error("Webhook signature verification failed.", err.message);
-    return new Response("Webhook Error", { status: 400 });
+    console.error("Stripe error:", err);
+    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
   }
-
-  // ✅ Gérer uniquement checkout.session.completed
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    console.log("Paiement réussi pour session ID:", session.id);
-    console.log("Metadata:", session.metadata);
-
-    // 🎯 Ici tu peux par exemple :
-    // - Mettre à jour Supabase (via fetch ou client)
-    // - Marquer un formulaire comme "payé"
-  }
-
-  return new Response("OK", { status: 200 });
 });

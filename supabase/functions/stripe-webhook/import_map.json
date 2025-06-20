@@ -1,2 +1,7 @@
-{}
+{
+  "imports": {
+    "stripe": "https://esm.sh/stripe@12.15.0?bundle"
+  }
+}
+
 
