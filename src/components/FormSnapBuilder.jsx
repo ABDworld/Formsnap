@@ -1,91 +1,121 @@
-import React, { useState } from 'react';
+import { useState } from "react";
 
 export default function FormSnapBuilder() {
-  const [formData, setFormData] = useState({ email: '', message: '' });
-  const [status, setStatus] = useState(null);
+  const [formFields, setFormFields] = useState([
+    { id: 1, type: "shortAnswer", label: "Name" },
+    { id: 2, type: "email", label: "Email" },
+    {
+      id: 3,
+      type: "multipleChoice",
+      label: "What are your primary goals for coaching?",
+      options: ["Career advancement", "Improving relationships", "Work-life balance"]
+    }
+  ]);
 
-  const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+  const [responses, setResponses] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleChange = (id, value) => {
+    setResponses({ ...responses, [id]: value });
+  };
+
+  const renderField = (field) => {
+    switch (field.type) {
+      case "shortAnswer":
+        return (
+          <input
+            type="text"
+            placeholder={field.label}
+            className="border p-2 rounded w-full"
+            onChange={(e) => handleChange(field.id, e.target.value)}
+          />
+        );
+      case "email":
+        return (
+          <input
+            type="email"
+            placeholder={field.label}
+            className="border p-2 rounded w-full"
+            onChange={(e) => handleChange(field.id, e.target.value)}
+          />
+        );
+      case "multipleChoice":
+        return (
+          <div>
+            <p className="font-semibold mb-1">{field.label}</p>
+            {field.options.map((opt, idx) => (
+              <label key={idx} className="block cursor-pointer mb-1">
+                <input
+                  type="radio"
+                  name={`field-${field.id}`}
+                  value={opt}
+                  className="mr-2"
+                  onChange={(e) => handleChange(field.id, e.target.value)}
+                />
+                {opt}
+              </label>
+            ))}
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus('loading');
+    setLoading(true);
+    setError("");
+
+    const email = formFields.find(f => f.type === "email")?.id;
+    const emailValue = responses[email];
 
     try {
-      // 1. Envoie les données à Supabase (si tu veux les enregistrer)
-      const response = await fetch('https://your-supabase-url.supabase.co/rest/v1/form_submissions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify(formData),
+      // 1. Save to Supabase (optional)
+      await fetch("/api/save-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ responses }),
       });
 
-      if (!response.ok) throw new Error('Erreur lors de l’enregistrement');
-
-      setStatus('saved');
-
-      // 2. Crée une session de paiement Stripe via la fonction Vercel
-      const checkoutRes = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      // 2. Call Stripe Checkout
+      const stripeRes = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailValue }),
       });
 
-      const data = await checkoutRes.json();
+      const data = await stripeRes.json();
+      if (!data.url) throw new Error("Stripe session failed");
 
-      if (!checkoutRes.ok || !data.url) throw new Error('Erreur Stripe');
-
-      // 3. Redirige vers Stripe Checkout
       window.location.href = data.url;
-
-    } catch (error) {
-      console.error(error);
-      setStatus('error');
+    } catch (err) {
+      console.error("❌ Error:", err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 border rounded shadow">
-      <h2 className="text-xl font-bold mb-4">FormSnap</h2>
+    <div className="max-w-xl mx-auto p-6 space-y-4">
+      <h1 className="text-2xl font-bold">FormSnap</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          name="email"
-          type="email"
-          placeholder="Votre e-mail"
-          value={formData.email}
-          onChange={handleChange}
-          className="w-full border px-3 py-2 rounded"
-          required
-        />
-
-        <textarea
-          name="message"
-          placeholder="Votre message"
-          value={formData.message}
-          onChange={handleChange}
-          className="w-full border px-3 py-2 rounded"
-        />
+        {formFields.map((field) => (
+          <div key={field.id}>{renderField(field)}</div>
+        ))}
 
         <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          disabled={status === 'loading'}
+          disabled={loading}
+          className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
         >
-          {status === 'loading' ? 'Envoi…' : 'Envoyer + Payer'}
+          {loading ? "Processing..." : "Submit & Pay with Stripe"}
         </button>
 
-        {status === 'error' && (
-          <p className="text-red-500">Une erreur est survenue.</p>
-        )}
+        {error && <p className="text-red-500">{error}</p>}
       </form>
     </div>
   );
