@@ -1,22 +1,15 @@
 {
   "name": "formsnap",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "deploy:webhook": "supabase functions deploy stripe-webhook --use-api"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.4",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^7.6.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.0.0",
-    "dotenv-cli": "^8.0.0",
-    "supabase": "^2.24.3",
-    "vite": "^4.0.0"
+    "next": "13.4.13",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "stripe": "^12.1.0"
   }
 }
