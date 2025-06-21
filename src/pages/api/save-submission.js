@@ -6,6 +6,9 @@ export default async function handler(req, res) {
   try {
     const { responses } = req.body;
 
+    // Tentative d'extraction de l'email en balayant tous les champs
+    const emailEntry = Object.values(responses).find(value => typeof value === 'string' && value.includes('@'));
+
     const supabaseRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/responses`, {
       method: 'POST',
       headers: {
@@ -16,7 +19,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         responses,
         submitted_at: new Date().toISOString(),
-        email: responses[2], // ID du champ email
+        email: emailEntry || null, // fallback si pas d’email trouvé
       }),
     });
 
