@@ -1,6 +1,8 @@
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2022-11-15',
+});
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -13,15 +15,20 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { email } = req.body;
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
+      customer_email: email, // facultatif mais utile
       line_items: [
         {
           price_data: {
             currency: 'eur',
-            product_data: { name: 'FormSnap - Form Payment' },
-            unit_amount: 1000,
+            product_data: {
+              name: 'FormSnap - Form Payment',
+            },
+            unit_amount: 1000, // 10.00 €
           },
           quantity: 1,
         },
@@ -32,7 +39,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ url: session.url });
   } catch (err) {
-    console.error("❌ Stripe error:", err); // LOG THE ERROR
+    console.error("❌ Stripe error:", err);
     return res.status(500).json({ error: 'Stripe session creation failed' });
   }
 }
