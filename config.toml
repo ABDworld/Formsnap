@@ -1,8 +1,0 @@
-[project]
-ref = "wcfielvrofhdaxgudprn"
-
-[functions.stripe-webhook]
-enabled = true
-verify_jwt = true
-import_map = "./functions/stripe-webhook/deno.json"
-entrypoint = "./functions/stripe-webhook/index.ts"
